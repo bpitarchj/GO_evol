@@ -16,7 +16,7 @@ ontology_top= {"biological_process":"GO:0008150","cellular_component":"GO:000557
 
 def node_analyser(graph,nodes, year):
 	nodes_expanded = []
-  for node in nodes:
+	for node in nodes:
 		node_kind = graph.nodes[node]["namespace"]
 	  	if node_kind in conversions.keys():
 			node_kind = conversions[node_kind]
