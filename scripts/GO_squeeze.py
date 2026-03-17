@@ -13,6 +13,7 @@ import obonet
 conversions = {"process":"biological_process","function":"molecular_function",
                "component":"cellular_component"}
 ontology_top= {"biological_process":"GO:0008150","cellular_component":"GO:0005575","molecular_function":"GO:0003674"}
+
 def node_analyser(graph,nodes, year):
 	nodes_expanded = []
   for node in nodes:
