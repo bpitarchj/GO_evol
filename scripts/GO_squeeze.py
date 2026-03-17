@@ -59,8 +59,8 @@ def node_analyser(graph,nodes, year):
                   is_leaf = False
                   is_first_layer = True
         nodes_expanded.append([year, node, node_kind, distance, is_leaf, is_first_layer, is_obs])
-  #pd.dataframe??
-  return(nodes_expanded)
+      #pd.dataframe??
+      return(nodes_expanded)
 
 def edge_analyser(graph,edges, year):
     edge_list = []
