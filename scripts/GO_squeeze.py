@@ -12,46 +12,39 @@ import obonet
 
 conversions = {"process":"biological_process","function":"molecular_function",
                "component":"cellular_component"}
-
+ontology_top= {"biological_process":"GO:0008150","cellular_component":"GO:0005575","molecular_function":"GO:0003674"}
 def node_analyser(graph,nodes, year):
 	nodes_expanded = []
   for node in nodes:
 		node_kind = graph.nodes[node]["namespace"]
-		try:
+	  	if node_kind in conversions.keys():
 			node_kind = conversions[node_kind]
-		except:
+		elif node_kind in conversions.values():
 			node_kind = node_kind
+		else:
+			print("Error: invalid ontology subtype in term:" , node)
+			
 		if ("is_obsolete" in graph.nodes[node]) and (graph.nodes[node]["is_obsolete"]== "true"):
 			is_obs = True
 			distance = "None"
 		else:
 			is_obs = False
-			in_deg = graph.in_degree(node)
-			if (in_deg == 0) and (graph.degree(node) != 0): #Avoids isolated nodes
-				if node_kind == "biological_process":    
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
-				elif node_kind == "cellular_component":
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
-				elif node_kind == "molecular_function":
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
-				else:
-					print("Error", node)
-					sys.exit()
-					is_leaf = True
-					is_first_layer = False
-			elif graph.degree(node) != 0: #first sons
-				if node_kind == "biological_process":    
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
-				elif node_kind == "cellular_component":
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
-				elif node_kind == "molecular_function":
-					distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
-				else:
-					print("Error", node)
-					sys.exit()
+
+			if graph.degree(node) == 0:
+				print("Isolated term", node)
+				#ERROR
+			else:
+				distance = len(nx.shortest_path(graph, source = node,target = ontology_top[node_kind]))
 				if distance == 2:
-					is_leaf = False
 					is_first_layer = True
+				else:
+					is_first_layer = False
+				
+				in_deg = graph.in_degree(node)
+				if (in_deg == 0):
+					is_leaf = True
+				else:
+					is_leaf = False
 		nodes_expanded.append([year, node, node_kind, distance, is_leaf, is_first_layer, is_obs])
 	#pd.dataframe??
 	return(nodes_expanded)
@@ -83,58 +76,6 @@ def edge_analyser(graph,edges, year):
     return(edge_list,inter_edge_list)
         
         
-def squeezer(file):
-    year = file.split("/")[-1].split("_")[0]
-    try:
-        graph =  obonet.read_obo(file, ignore_obsolete= False)
-    except:
-        print("Error opening obo",file)
-        sys.exit()
-    nodes = graph.nodes
-    edges = graph.edges
-    nodes_detailed,obsoletes,leaf_terms,first_sons = node_analyser(graph,nodes)
-    try:
-        fh = open(path+"/"+year+"_nodes","w")
-    except:
-        print("Error opening nodes file:", year)
-    fh.write("\n".join(nodes_detailed))
-    fh.close()
-    try:
-        fh = open(path+"/"+year+"_obsolete_nodes","w")
-    except:
-        print("Error opening nodes file:", year)
-    fh.write("\n".join(obsoletes))
-    fh.close()
-    try:
-        fh = open(path+"/"+year+"_leaf_terms","w")
-    except:
-        print("Error opening nodes file:", year)
-    fh.write("\n".join(leaf_terms))
-    fh.close()
-    
-    edges_detailed,inter_edges=edge_analyser(graph,edges)
-    try:
-        fh = open(path+"/"+year+"_edges","w")
-    except:
-        print("Error opening edges file:", year)
-    fh.write("\n".join(edges_detailed))
-    fh.close()
-    if len(inter_edges) != 0:
-        try:
-            fh = open(path+"/"+year+"_inter_edges","w")
-        except:
-            print("Error opening inter edges file:", year)
-        fh.write("\n".join(inter_edges))
-        fh.close()
-    else:
-        print("No inter edges")
-    
-    try:
-        fh = open(path+"/"+year+"_first_sons","w")
-    except:
-        print("Error opening first sons file:", year)
-    fh.write("\n".join(first_sons))
-    fh.close()
 
 #MAIN RUN
 
@@ -145,8 +86,7 @@ data_folder.sort()
 for file in data_folder:
     path = "input_data/"+file
     print(path)
-    squeezer(path+file)
-        year = file.split("/")[-1].split("_")[0]
+	year = file.split("_")[0]
     try:
         graph =  obonet.read_obo(file, ignore_obsolete= False)
     except:
