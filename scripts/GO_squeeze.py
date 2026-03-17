@@ -14,53 +14,47 @@ conversions = {"process":"biological_process","function":"molecular_function",
                "component":"cellular_component"}
 
 def node_analyser(graph,nodes, year):
-"""    #Three lists: one for nodes, one for obsoletes, one for leaf terms and depth
-    node_list = []
-    obso_list = []
-    leaf_list = []
-    first_sons = []"""
-    nodes_expanded = []
-    for node in nodes:
-        node_kind = graph.nodes[node]["namespace"]
-        try:
-            node_kind = conversions[node_kind]
-        except:
-            node_kind = node_kind
-        if ("is_obsolete" in graph.nodes[node]) and (graph.nodes[node]["is_obsolete"]== "true"):
-            is_obs = True
-            distance = "None"
-        else:
-            is_obs = False
-            in_deg = graph.in_degree(node)
-            if (in_deg == 0) and (graph.degree(node) != 0): #Avoids isolated nodes
-                if node_kind == "biological_process":    
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
-                elif node_kind == "cellular_component":
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
-                elif node_kind == "molecular_function":
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
-                else:
-                    print("Error", node)
-                    sys.exit()
-                is_leaf = True
-                is_first_layer = False
-            elif graph.degree(node) != 0: #first sons
-                if node_kind == "biological_process":    
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
-                elif node_kind == "cellular_component":
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
-                elif node_kind == "molecular_function":
-                    distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
-                else:
-                    print("Error", node)
-                    sys.exit()
-                  
-                if distance == 2:
-                  is_leaf = False
-                  is_first_layer = True
-        nodes_expanded.append([year, node, node_kind, distance, is_leaf, is_first_layer, is_obs])
-    #pd.dataframe??
-    return(nodes_expanded)
+	nodes_expanded = []
+  for node in nodes:
+		node_kind = graph.nodes[node]["namespace"]
+		try:
+			node_kind = conversions[node_kind]
+		except:
+			node_kind = node_kind
+		if ("is_obsolete" in graph.nodes[node]) and (graph.nodes[node]["is_obsolete"]== "true"):
+			is_obs = True
+			distance = "None"
+		else:
+			is_obs = False
+			in_deg = graph.in_degree(node)
+			if (in_deg == 0) and (graph.degree(node) != 0): #Avoids isolated nodes
+				if node_kind == "biological_process":    
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
+				elif node_kind == "cellular_component":
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
+				elif node_kind == "molecular_function":
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
+				else:
+					print("Error", node)
+					sys.exit()
+					is_leaf = True
+					is_first_layer = False
+			elif graph.degree(node) != 0: #first sons
+				if node_kind == "biological_process":    
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
+				elif node_kind == "cellular_component":
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0005575"))
+				elif node_kind == "molecular_function":
+					distance = len(nx.shortest_path(graph, source = node,target = "GO:0003674"))
+				else:
+					print("Error", node)
+					sys.exit()
+				if distance == 2:
+					is_leaf = False
+					is_first_layer = True
+		nodes_expanded.append([year, node, node_kind, distance, is_leaf, is_first_layer, is_obs])
+	#pd.dataframe??
+	return(nodes_expanded)
 
 def edge_analyser(graph,edges, year):
     edge_list = []
