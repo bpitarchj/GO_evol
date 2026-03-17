@@ -13,12 +13,13 @@ import obonet
 conversions = {"process":"biological_process","function":"molecular_function",
                "component":"cellular_component"}
 
-def node_analyser(graph,nodes):
-    #Three lists: one for nodes, one for obsoletes, one for leaf terms and depth
+def node_analyser(graph,nodes, year):
+"""    #Three lists: one for nodes, one for obsoletes, one for leaf terms and depth
     node_list = []
     obso_list = []
     leaf_list = []
-    first_sons = []
+    first_sons = []"""
+    nodes_expanded = []
     for node in nodes:
         node_kind = graph.nodes[node]["namespace"]
         try:
@@ -26,13 +27,12 @@ def node_analyser(graph,nodes):
         except:
             node_kind = node_kind
         if ("is_obsolete" in graph.nodes[node]) and (graph.nodes[node]["is_obsolete"]== "true"):
-            #print(node,node_kind,"Obsolete") #Append to obsoletes
-            obso_list.append(node+"\t"+node_kind)
+            is_obs = True
+            distance = "None"
         else:
-            #print(node,node_kind) #Append to nodes
-            node_list.append(node+"\t"+node_kind)
-            deg = graph.in_degree(node)
-            if (deg == 0) and (graph.degree(node) != 0): #Avoids isolated nodes
+            is_obs = False
+            in_deg = graph.in_degree(node)
+            if (in_deg == 0) and (graph.degree(node) != 0): #Avoids isolated nodes
                 if node_kind == "biological_process":    
                     distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
                 elif node_kind == "cellular_component":
@@ -42,8 +42,8 @@ def node_analyser(graph,nodes):
                 else:
                     print("Error", node)
                     sys.exit()
-                #print(node,node_kind,distance)#Append
-                leaf_list.append(node+"\t"+node_kind+"\t"+str(distance))
+                is_leaf = True
+                is_first_layer = False
             elif graph.degree(node) != 0: #first sons
                 if node_kind == "biological_process":    
                     distance = len(nx.shortest_path(graph, source = node,target = "GO:0008150"))
@@ -54,11 +54,15 @@ def node_analyser(graph,nodes):
                 else:
                     print("Error", node)
                     sys.exit()
+                  
                 if distance == 2:
-                    first_sons.append(node+"\t"+node_kind)
-    return(node_list,obso_list,leaf_list,first_sons)
+                  is_leaf = False
+                  is_first_layer = True
+        nodes_expanded.append([year, node, node_kind, distance, is_leaf, is_first_layer, is_obs])
+  #pd.dataframe??
+  return(nodes_expanded)
 
-def edge_analyser(graph,edges):
+def edge_analyser(graph,edges, year):
     edge_list = []
     inter_edge_list = []
     for edge in edges:
@@ -86,8 +90,7 @@ def edge_analyser(graph,edges):
         
         
 def squeezer(file):
-    path = "/".join(file.split("/")[:-1])
-    year = file.split("/")[1]
+    year = file.split("/")[-1].split("_")[0]
     try:
         graph =  obonet.read_obo(file, ignore_obsolete= False)
     except:
@@ -140,6 +143,8 @@ def squeezer(file):
     fh.close()
 
 #MAIN RUN
+
+first_year = True
 data_folder = os.listdir("input_data/")
 print(data_folder, file=sys.stderr())
 data_folder.sort()
@@ -147,3 +152,13 @@ for file in data_folder:
     path = "input_data/"+file
     print(path)
     squeezer(path+file)
+        year = file.split("/")[-1].split("_")[0]
+    try:
+        graph =  obonet.read_obo(file, ignore_obsolete= False)
+    except:
+        print("Error opening obo",file)
+        sys.exit()
+    nodes_detailed = node_analyser(graph,graph.nodes, year)
+    edges_detailed = edge_analyser(graph,graph.edges, year)
+    if first_year:
+        first_year = False
