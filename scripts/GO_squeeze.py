@@ -9,6 +9,7 @@ import os
 import sys
 import networkx as nx
 import obonet
+import pandas as pd
 
 conversions = {"process":"biological_process","function":"molecular_function",
                "component":"cellular_component"}
@@ -51,7 +52,9 @@ def node_analyser(graph,nodes, year):
 	return(nodes_expanded)
 
 def edge_analyser(graph,edges, year):
-    edge_list = []
+    edge_df = pd.DataFrame(edges, columns=['source', 'target', "relationship_type"])
+	edge_df
+	edge_list = []
     inter_edge_list = []
     for edge in edges:
         edge_kind = edge[2]
@@ -87,7 +90,7 @@ data_folder.sort()
 for file in data_folder:
     path = "input_data/"+file
     print(path)
-	year = file.split("_")[0]
+	year = int(file.split("_")[0])
     try:
         graph =  obonet.read_obo(file, ignore_obsolete= False)
     except:
