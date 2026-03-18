@@ -54,18 +54,23 @@ def node_comparator(df,year1,year2):
   #Comparison of terms
   active_terms_year1 = df[(df["year"]==year1) & (df["is_obsolete"]==False)]["GO_term"]
   active_terms_year2 = df[(df["year"]==year2) & (df["is_obsolete"]==False)]["GO_term"]
-  new_terms = set(list(active_terms_year2)) - set(list(active_terms_year1))
-  obsolete_terms = set(list(active_terms_year1)) - set(list(active_terms_year2))
-  print(len(new_terms))
-  print(len(obsolete_terms))
-  print(df[(df["GO_term"].isin(list(obsolete_terms)))& (df["year"]== year1)])
+  new_terms = len(set(list(active_terms_year2)) - set(list(active_terms_year1)))
+  new_obsolete_terms = len(set(list(active_terms_year1)) - set(list(active_terms_year2)))
+  return([year2, new_terms,new_obsolete_terms])
 
+def edge_analyser(graph, year):
+  edge_df = pd.DataFrame(graph.edges, columns=['source', 'target', "relationship_type"])
+  node_kinds = nx.get_node_attributes(graph, 'namespace')
+  edge_df['source_kind'] = edge_df['source'].map(node_kinds)
+  edge_df['target_kind'] = edge_df['target'].map(node_kinds)
+  print(edge_df)
+  if set(node_kinds.values()) == set(conversions.keys()): #2004
+    edge_df['source_kind'] = edge_df['source_kind'].map(conversions)
+    edge_df['target_kind'] = edge_df['target_kind'].map(conversions)
+  print(edge_df)
+  """
+  edge_list = []
 
-"""
-def edge_analyser(graph,edges, year):
-    edge_df = pd.DataFrame(edges, columns=['source', 'target', "relationship_type"])
-	edge_df
-	edge_list = []
     inter_edge_list = []
     for edge in edges:
         edge_kind = edge[2]
@@ -98,6 +103,7 @@ first_year = True
 data_folder = os.listdir("/home/input_data/")
 print(data_folder)
 data_folder.sort()
+new_information=[] #Year, New terms and new obsolete terms
 for file_name in data_folder:
   path = "/home/input_data/"+file_name
   print(path)
@@ -109,12 +115,17 @@ for file_name in data_folder:
       sys.exit()
     year = int(file_name.split("_")[0])
     nodes_detailed = node_analyser(graph,year)
-#edges_detailed = edge_analyser(graph,graph.edges, year)
+    edges_detailed = edge_analyser(graph,year)
+    continue
     if first_year:
       first_year = False
       all_terms_info = nodes_detailed
+      new_terms = len(nodes_detailed[nodes_detailed["is_obsolete"]==False]["GO_term"])
+      new_obsolete_terms = len(nodes_detailed[nodes_detailed["is_obsolete"]==True]["GO_term"])
+      new_information.append([year,new_terms,new_obsolete_terms])
       #all_edges_info = edges_detailed
     else:
       all_terms_info= pd.concat([all_terms_info,nodes_detailed])
-      node_comparator(all_terms_info, year-1,year)
-      break
+      new_information.append(node_comparator(all_terms_info, year-1,year))
+
+pd.DataFrame(new_information, columns=["Year","New_terms","New_obsoloete_terms"])
