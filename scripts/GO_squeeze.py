@@ -55,10 +55,11 @@ def node_comparator(df,year1,year2):
   active_terms_year1 = df[(df["year"]==year1) & (df["is_obsolete"]==False)]["GO_term"]
   active_terms_year2 = df[(df["year"]==year2) & (df["is_obsolete"]==False)]["GO_term"]
   new_terms = len(set(list(active_terms_year2)) - set(list(active_terms_year1)))
+  ####FROM NEW TERMS, GET WORDS FOR WORDCLOUD
   new_obsolete_terms = len(set(list(active_terms_year1)) - set(list(active_terms_year2)))
   return([year2, new_terms,new_obsolete_terms])
 
-def edge_analyser(graph, year):
+def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
   edge_df = pd.DataFrame(graph.edges, columns=['source', 'target', "relationship_type"])
   node_kinds = nx.get_node_attributes(graph, 'namespace')
   edge_df['source_kind'] = edge_df['source'].map(node_kinds)
@@ -68,34 +69,9 @@ def edge_analyser(graph, year):
     edge_df['source_kind'] = edge_df['source_kind'].map(conversions)
     edge_df['target_kind'] = edge_df['target_kind'].map(conversions)
   print(edge_df)
-  """
-  edge_list = []
+  #Compare source_kind and target_kind (==). If True: add relationship kind normally. If false, add it s interontology.
+  #Return a df with the following columns : year, node (source), node_kind, number of relationships X number of relationships types, number of interontology relationships
 
-    inter_edge_list = []
-    for edge in edges:
-        edge_kind = edge[2]
-        node1 = edge[0]
-        node_kind1 = graph.nodes[node1]["namespace"]
-        try:
-            node_kind1 = conversions[node_kind1]
-        except:
-            node_kind1 = node_kind1
-        node2 = edge[1]
-        node_kind2 = graph.nodes[node2]["namespace"]        
-        try:
-            node_kind2 = conversions[node_kind2]
-        except:
-            node_kind2 = node_kind2        
-        if node_kind1 == node_kind2:
-            #print(node1,node2,node_kind1,edge_kind)
-            edge_list.append(node1+"\t"+node2+"\t"+node_kind1+"\t"+edge_kind)
-        else:
-            print("Tuturu. Metaro Upa")
-            print(node1,node2,node_kind1,node_kind2,edge_kind)
-            inter_edge_list.append(node1+"\t"+node2+"\t"+node_kind1+"\t"+ node_kind2+"\t"+edge_kind)
-    return(edge_list,inter_edge_list)
-   """     
-        
 
 #MAIN RUN
 
@@ -117,6 +93,7 @@ for file_name in data_folder:
     nodes_detailed = node_analyser(graph,year)
     edges_detailed = edge_analyser(graph,year)
     continue
+    #MERGE NODES AND EDGES DF
     if first_year:
       first_year = False
       all_terms_info = nodes_detailed
@@ -128,4 +105,27 @@ for file_name in data_folder:
       all_terms_info= pd.concat([all_terms_info,nodes_detailed])
       new_information.append(node_comparator(all_terms_info, year-1,year))
 
-pd.DataFrame(new_information, columns=["Year","New_terms","New_obsoloete_terms"])
+new_terms_info = pd.DataFrame(new_information, columns=["Year","New_terms","New_obsoloete_terms"])
+
+#Lifespan
+
+#Plotter
+
+#Plotter functions
+def Z_score(serie):
+    return((serie-serie.mean())/serie.std())
+
+def vline_plotter(serie):
+    for value in list(serie):
+        plt.axvline(value,color="grey", linewidth=1)
+def vline_plotter_medium(serie,coord1):
+    for value in list(serie):
+        axs[coord1].axvline(value,color="grey", linewidth=1.5)
+def vline_plotter_advance(serie,coord1,coord2):
+    for value in list(serie):
+        axs[coord1,coord2].axvline(value,color="grey", linewidth=1.5)
+def nodes_norm(edges,nodes):
+    return(edges/nodes)
+def leaf_norm(leaves,nodes):
+    return((nodes-leaves)/leaves)
+
