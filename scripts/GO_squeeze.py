@@ -73,6 +73,10 @@ def edge_squeezer(relationship): #to unify relationship types in "others"
     
 
 def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
+  df_columns=["is_a-biological_process","is_a-molecular_function","is_a-cellular_component",
+              "part_of-biological_process","part_of-molecular_function","part_of-cellular_component",
+              "others-biological_process","others-molecular_function","others-cellular_component",
+              "year", "source","interontology"]
   edge_df = pd.DataFrame(graph.edges, columns=['source', 'target', "relationship_type"])
   node_kinds = nx.get_node_attributes(graph, 'namespace')
   edge_df['source_kind'] = edge_df['source'].map(node_kinds)
@@ -92,13 +96,18 @@ def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
   edge_df["relationship_ontology_subtype"] = edge_df["relationship_type_simplified"] + "-" + edge_df["source_kind"]
   final_edge_df = edge_df[["source","relationship_ontology_subtype"]].value_counts().reset_index()
   final_edge_df= final_edge_df.pivot(index = "source",columns = "relationship_ontology_subtype", values = "count")
-  print(final_edge_df.columns)
-  print(final_edge_df)
-  sys.exit()
-  ## ADD A COLUMN OF INTERONTOLOGY
-  ## WE WILL HAVE TO CHECK IF ALL THE COLUMNS APPEAR. IF NOT, WE WILL HAVE TO ADD IT AS ZEROS. 
-  #Compare source_kind and target_kind (==). If True: add relationship kind normally. If false, add it s interontology.
-  #Return a df with the following columns : year, node (source), node_kind, number of relationships X number of relationships types, number of interontology relationships
+  final_edge_df = final_edge_df.fillna(0)
+  interontology_counts = edge_df[["source","interontology"]].value_counts().reset_index()
+  #print(interontology_counts.columns)
+  #print(final_edge_df.columns)
+  #print(final_edge_df)
+  final_edge_df = final_edge_df.merge(interontology_counts, left_index=True, right_on="source")
+  final_edge_df["year"] = year
+  missing_columns = set(df_columns) - set(list(final_edge_df.columns))
+  print(missing_columns)
+  for column in missing_columns:
+    final_edge_df[column] = 0
+  return(final_edge_df)
 
 
 #MAIN RUN
