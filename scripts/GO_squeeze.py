@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -10,6 +11,9 @@ import sys
 import networkx as nx
 import obonet
 import pandas as pd
+import matplotlib.pyplot as plt
+
+input_folder = "/home/bpitarch/Desktop/test_go_evol/"
 
 conversions = {"process":"biological_process","function":"molecular_function","component":"cellular_component"}
 ontology_top= {"biological_process":"GO:0008150","cellular_component":"GO:0005575","molecular_function":"GO:0003674"}
@@ -58,6 +62,15 @@ def node_comparator(df,year1,year2):
   ####FROM NEW TERMS, GET WORDS FOR WORDCLOUD
   new_obsolete_terms = len(set(list(active_terms_year1)) - set(list(active_terms_year2)))
   return([year2, new_terms,new_obsolete_terms])
+    
+def edge_squeezer(relationship): #to unify relationship types in "others"
+    if relationship == "is_a":
+        return(relationship)
+    elif relationship == "part_of":
+        return(relationship)
+    else:
+        return("other")
+    
 
 def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
   edge_df = pd.DataFrame(graph.edges, columns=['source', 'target', "relationship_type"])
@@ -68,7 +81,22 @@ def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
   if set(node_kinds.values()) == set(conversions.keys()): #2004
     edge_df['source_kind'] = edge_df['source_kind'].map(conversions)
     edge_df['target_kind'] = edge_df['target_kind'].map(conversions)
-  print(edge_df)
+  edge_df["interontology"] = edge_df["source_kind"] != edge_df["target_kind"]
+  #print(edge_df["interontology"].value_counts())
+  #edge_df["Year"] = year
+  edge_df["relationship_type_simplified"] = edge_df["relationship_type"].apply(lambda x: edge_squeezer(x))
+  
+  #final_edge_df = pd.DataFrame(columns=["year","GO_term","ontology_subtype","is_a-BP","is_a-MF","is_a-CC",
+  #                                      "part_of-BP","part_of-MF","part_of-CC","others-BP","others-MF", 
+  #                                      "others-CC","interontology"])
+  edge_df["relationship_ontology_subtype"] = edge_df["relationship_type_simplified"] + "-" + edge_df["source_kind"]
+  final_edge_df = edge_df[["source","relationship_ontology_subtype"]].value_counts().reset_index()
+  final_edge_df= final_edge_df.pivot(index = "source",columns = "relationship_ontology_subtype", values = "count")
+  print(final_edge_df.columns)
+  print(final_edge_df)
+  sys.exit()
+  ## ADD A COLUMN OF INTERONTOLOGY
+  ## WE WILL HAVE TO CHECK IF ALL THE COLUMNS APPEAR. IF NOT, WE WILL HAVE TO ADD IT AS ZEROS. 
   #Compare source_kind and target_kind (==). If True: add relationship kind normally. If false, add it s interontology.
   #Return a df with the following columns : year, node (source), node_kind, number of relationships X number of relationships types, number of interontology relationships
 
@@ -76,12 +104,12 @@ def edge_analyser(graph, year): #MAY BE EASILY INTEGRATED IN NODE ANALYSER
 #MAIN RUN
 
 first_year = True
-data_folder = os.listdir("/home/input_data/")
+data_folder = os.listdir(input_folder)
 print(data_folder)
 data_folder.sort()
 new_information=[] #Year, New terms and new obsolete terms
 for file_name in data_folder:
-  path = "/home/input_data/"+file_name
+  path = input_folder+file_name
   print(path)
   if file_name.endswith (".obo"):
     try:
@@ -105,7 +133,7 @@ for file_name in data_folder:
       all_terms_info= pd.concat([all_terms_info,nodes_detailed])
       new_information.append(node_comparator(all_terms_info, year-1,year))
 
-new_terms_info = pd.DataFrame(new_information, columns=["Year","New_terms","New_obsoloete_terms"])
+new_terms_info = pd.DataFrame(new_information, columns=["Year","New_terms","New_obsolete_terms"])
 
 #Lifespan
 
@@ -128,4 +156,3 @@ def nodes_norm(edges,nodes):
     return(edges/nodes)
 def leaf_norm(leaves,nodes):
     return((nodes-leaves)/leaves)
-
